@@ -8,3 +8,6 @@ pub use crate::presentation::Presentation;
 
 mod builder;
 pub use crate::builder::{Builder, BuilderError};
+
+mod collector;
+pub use crate::collector::Collector;
