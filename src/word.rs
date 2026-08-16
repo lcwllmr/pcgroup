@@ -1,11 +1,11 @@
 use std::fmt;
 
-/// Represents a single generator-exponent term `gi^e` of a normal form [word](Word) implicitly associated to some [PC presentation](Presentation).
+/// Represents a single generator-exponent term `gi^e` of a normal form [word](Word) implicitly associated to some [PC presentation](crate::Presentation).
 /// The following invariants must hold (but are not enforced by the type):
 ///
 /// # Invariants
-/// - `i = gen_index` is a valid 0-based generator index (`0 <= i < n`) where `n` is the [number of generators](Presentation::num_gens).
-/// - `e = exponent` is strictly positive (`e > 0`) and bounded by `p_i` where `p_i` is the [relative order](Presentation::relative_order) of the `i`-th generator.
+/// - `i = gen_index` is a valid 0-based generator index (`0 <= i < n`) where `n` is the [number of generators](crate::Presentation::num_gens).
+/// - `e = exponent` is strictly positive (`e > 0`) and bounded by `p_i` where `p_i` is the [relative order](crate::Presentation::relative_orders()) of the `i`-th generator.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Term {
     /// The generator index `i`.
@@ -50,11 +50,12 @@ impl fmt::Display for Term {
     }
 }
 
-/// Represents a word in normal form associated with a [PC presentation](Presentation).
+/// Represents a word in normal form associated with a [PC presentation](crate::Presentation).
 /// An empty sequence of [terms](Term) represents the group identity (`1`).
 ///
 /// # Invariants
 /// On top of the invariants of [Term] the sequence of generator indices must be strictly increasing: `i1 < i2 < ... < ik`.
+/// Only the constructors and the [collector](crate::Collector) should be used to produce `Word`s.
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Default)]
 pub struct Word {
     /// A vector of terms with strictly increasing `gen_index`.
@@ -74,7 +75,7 @@ impl Word {
         Self { terms }
     }
 
-    /// Creates a `Word` consisting of a single term $g_i^e$.
+    /// Creates a `Word` consisting of a single term `gi^e`.
     ///
     /// If `exponent == 0`, returns the identity word.
     #[inline]

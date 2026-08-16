@@ -4,7 +4,7 @@ use crate::word::Word;
 
 /// A power-commutator (PC) presentation of a finite polycyclic group.
 ///
-/// Construction of such presentations happens via [`PresentationBuilder`](crate::PresentationBuilder).
+/// Construction of such presentations happens via [`Builder`](crate::Builder).
 ///
 /// # Definition
 /// A polycyclic group has a PC presentation with generators `g0, ..., g{n-1}`,
@@ -56,9 +56,8 @@ impl Presentation {
 
     /// Creates a new `Presentation` from its constituent parts.
     ///
-    /// Expected to be called by [`PresentationBuilder`](crate::PresentationBuilder).
+    /// Expected to be called by [`Builder`](crate::Builder).
     #[inline]
-    #[allow(dead_code)]
     pub(crate) fn new(
         relative_orders: Vec<u32>,
         powers: Vec<Word>,
