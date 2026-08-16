@@ -1,5 +1,10 @@
+pub(crate) mod util;
+
 mod word;
 pub use crate::word::{Term, Word};
 
 mod presentation;
 pub use crate::presentation::Presentation;
+
+mod builder;
+pub use crate::builder::{Builder, BuilderError};
