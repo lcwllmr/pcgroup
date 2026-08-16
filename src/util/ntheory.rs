@@ -20,35 +20,71 @@ pub fn is_prime(n: u32) -> bool {
     true
 }
 
+/// Returns the prime factors of `n` in non-decreasing order with multiplicity.
+///
+/// For `n <= 1`, an empty vector is returned.
+pub fn factorize(mut n: u32) -> Vec<u32> {
+    let mut factors = Vec::new();
+    if n <= 1 {
+        return factors;
+    }
+    while n.is_multiple_of(2) {
+        factors.push(2);
+        n /= 2;
+    }
+    while n.is_multiple_of(3) {
+        factors.push(3);
+        n /= 3;
+    }
+    let mut d = 5u32;
+    while (d as u64) * (d as u64) <= n as u64 {
+        while n.is_multiple_of(d) {
+            factors.push(d);
+            n /= d;
+        }
+        while n.is_multiple_of(d + 2) {
+            factors.push(d + 2);
+            n /= d + 2;
+        }
+        d += 6;
+    }
+    if n > 1 {
+        factors.push(n);
+    }
+    factors
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn test_is_prime() {
-        assert!(!is_prime(0));
-        assert!(!is_prime(1));
-        assert!(is_prime(2));
-        assert!(is_prime(3));
-        assert!(!is_prime(4));
-        assert!(is_prime(5));
-        assert!(!is_prime(6));
-        assert!(is_prime(7));
-        assert!(!is_prime(8));
-        assert!(!is_prime(9));
-        assert!(!is_prime(10));
-        assert!(is_prime(11));
-        assert!(is_prime(13));
-        assert!(!is_prime(15));
-        assert!(is_prime(17));
-        assert!(is_prime(19));
-        assert!(!is_prime(21));
-        assert!(is_prime(23));
-        assert!(!is_prime(25));
-        assert!(is_prime(29));
-        assert!(is_prime(31));
-        assert!(!is_prime(35));
-        assert!(is_prime(97));
-        assert!(!is_prime(100));
+        let primes = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29, 31, 97];
+        let non_primes = [0, 1, 4, 6, 8, 9, 10, 15, 21, 25, 35, 100];
+        for &p in &primes {
+            assert!(is_prime(p), "{p} should be prime");
+        }
+        for &np in &non_primes {
+            assert!(!is_prime(np), "{np} should not be prime");
+        }
+    }
+
+    #[test]
+    fn test_factorize() {
+        let cases: &[(u32, &[u32])] = &[
+            (0, &[]),
+            (1, &[]),
+            (2, &[2]),
+            (3, &[3]),
+            (4, &[2, 2]),
+            (12, &[2, 2, 3]),
+            (60, &[2, 2, 3, 5]),
+            (97, &[97]),
+            (360, &[2, 2, 2, 3, 3, 5]),
+        ];
+        for &(n, expected) in cases {
+            assert_eq!(factorize(n), expected, "factorization mismatch for {n}");
+        }
     }
 }

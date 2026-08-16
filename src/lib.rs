@@ -1,4 +1,5 @@
-pub(crate) mod util;
+pub mod util;
+pub mod zoo;
 
 mod word;
 pub use crate::word::{Term, Word};
