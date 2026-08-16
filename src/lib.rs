@@ -14,3 +14,6 @@ pub use crate::collector::Collector;
 
 mod element;
 pub use crate::element::Element;
+
+mod consistency;
+pub use crate::consistency::{ConsistencyError, verify_consistency};
