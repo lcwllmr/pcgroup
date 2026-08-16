@@ -11,3 +11,6 @@ pub use crate::builder::{Builder, BuilderError};
 
 mod collector;
 pub use crate::collector::Collector;
+
+mod element;
+pub use crate::element::Element;
