@@ -59,7 +59,9 @@ pub fn abelian(orders: &[u32]) -> Presentation {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::verify_consistency;
+    use crate::{
+        Element, GeneratingSequence, is_abelian, is_nilpotent, nilpotency_class, verify_consistency,
+    };
 
     #[test]
     fn test_abelian_groups() {
@@ -85,6 +87,29 @@ mod tests {
                 verify_consistency(&pres),
                 Ok(()),
                 "Consistency check failed for abelian group with factors {factors:?}"
+            );
+
+            let full = GeneratingSequence::full_group(&pres);
+            let gens: Vec<_> = (0..pres.num_gens())
+                .map(|i| Element::from_generator(i, 1, &pres))
+                .collect();
+
+            // Direct products of cyclic groups are always abelian
+            assert!(
+                is_abelian(&full, &gens),
+                "Abelian group with factors {factors:?} must be abelian"
+            );
+
+            // Nilpotency class: 0 for trivial group, 1 for non-trivial abelian groups
+            let expected_class = if expected_order == 1 { 0 } else { 1 };
+            assert_eq!(
+                nilpotency_class(&full, &gens),
+                Some(expected_class),
+                "Nilpotency class mismatch for abelian group with factors {factors:?}"
+            );
+            assert!(
+                is_nilpotent(&full, &gens),
+                "Abelian group with factors {factors:?} must be nilpotent"
             );
         }
     }

@@ -88,7 +88,9 @@ pub fn quaternion(n: u32) -> Presentation {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::verify_consistency;
+    use crate::{
+        Element, GeneratingSequence, is_abelian, is_nilpotent, nilpotency_class, verify_consistency,
+    };
 
     #[test]
     fn test_quaternion_groups() {
@@ -107,6 +109,45 @@ mod tests {
                 "Consistency check failed for quaternion group Q_{{{}}}",
                 4 * n
             );
+
+            let full = GeneratingSequence::full_group(&pres);
+            let gens: Vec<_> = (0..pres.num_gens())
+                .map(|i| Element::from_generator(i, 1, &pres))
+                .collect();
+
+            // Quaternion / dicyclic groups Q_{4n} (n >= 2) are never abelian
+            assert!(
+                !is_abelian(&full, &gens),
+                "Quaternion group Q_{{{}}} must not be abelian",
+                4 * n
+            );
+
+            // Q_{4n} is nilpotent iff n is a power of 2
+            let is_pwr2 = n.is_power_of_two();
+            assert_eq!(
+                is_nilpotent(&full, &gens),
+                is_pwr2,
+                "Nilpotency check mismatch for quaternion group Q_{{{}}}",
+                4 * n
+            );
+
+            if is_pwr2 {
+                // Nilpotency class: k + 1 for Q_{2^(k+2)} where n = 2^k (e.g. Q_8 -> 2, Q_16 -> 3, Q_32 -> 4)
+                let expected_class = (n.trailing_zeros() + 1) as usize;
+                assert_eq!(
+                    nilpotency_class(&full, &gens),
+                    Some(expected_class),
+                    "Nilpotency class mismatch for quaternion group Q_{{{}}}",
+                    4 * n
+                );
+            } else {
+                assert_eq!(
+                    nilpotency_class(&full, &gens),
+                    None,
+                    "Non-2-group quaternion Q_{{{}}} must not be nilpotent",
+                    4 * n
+                );
+            }
         }
     }
 

@@ -89,7 +89,9 @@ pub fn dihedral(n: u32) -> Presentation {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::verify_consistency;
+    use crate::{
+        Element, GeneratingSequence, is_abelian, is_nilpotent, nilpotency_class, verify_consistency,
+    };
 
     #[test]
     fn test_dihedral_groups() {
@@ -108,6 +110,51 @@ mod tests {
                 "Consistency check failed for dihedral group D_{{{}}}",
                 2 * n
             );
+
+            let full = GeneratingSequence::full_group(&pres);
+            let gens: Vec<_> = (0..pres.num_gens())
+                .map(|i| Element::from_generator(i, 1, &pres))
+                .collect();
+
+            // Dihedral D_{2n} is abelian iff n = 1 (D_2 = C_2) or n = 2 (D_4 = V_4)
+            let is_ab = is_abelian(&full, &gens);
+            assert_eq!(
+                is_ab,
+                n <= 2,
+                "Abelian check mismatch for dihedral group D_{{{}}}",
+                2 * n
+            );
+
+            // D_{2n} is nilpotent iff n is a power of 2
+            let is_pwr2 = n.is_power_of_two();
+            assert_eq!(
+                is_nilpotent(&full, &gens),
+                is_pwr2,
+                "Nilpotency check mismatch for dihedral group D_{{{}}}",
+                2 * n
+            );
+
+            if is_pwr2 {
+                // Nilpotency class: 1 for D_2 and D_4; k = log2(n) for D_{2^(k+1)} (n = 2^k >= 4)
+                let expected_class = if n <= 2 {
+                    1
+                } else {
+                    n.trailing_zeros() as usize
+                };
+                assert_eq!(
+                    nilpotency_class(&full, &gens),
+                    Some(expected_class),
+                    "Nilpotency class mismatch for dihedral group D_{{{}}}",
+                    2 * n
+                );
+            } else {
+                assert_eq!(
+                    nilpotency_class(&full, &gens),
+                    None,
+                    "Non-2-group dihedral D_{{{}}} must not be nilpotent",
+                    2 * n
+                );
+            }
         }
     }
 
