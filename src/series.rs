@@ -375,10 +375,38 @@ pub fn chief_series<'a>(pres: &'a Presentation) -> Vec<GeneratingSequence<'a>> {
     chief
 }
 
+/// Checks whether a finite polycyclic group is supersolvable.
+///
+/// A finite group is supersolvable (or supersoluble) if and only if it possesses a normal series
+/// where each factor is cyclic. For finite solvable groups, this is equivalent to every
+/// chief factor having prime order (rather than a composite prime power).
+///
+/// # Examples
+/// ```
+/// use pcgroup::zoo::{abelian, cyclic, dihedral, quaternion};
+/// use pcgroup::is_supersolvable;
+///
+/// // All cyclic, abelian, dihedral, and dicyclic groups are supersolvable
+/// assert!(is_supersolvable(&cyclic(6)));
+/// assert!(is_supersolvable(&abelian(&[2, 2])));
+/// assert!(is_supersolvable(&dihedral(3))); // S_3 (supersolvable, but not nilpotent)
+/// assert!(is_supersolvable(&quaternion(2))); // Q_8
+/// ```
+pub fn is_supersolvable(pres: &Presentation) -> bool {
+    let chief = chief_series(pres);
+    chief.windows(2).all(|w| {
+        let factor_order = w[0].order() / w[1].order();
+        u32::try_from(factor_order)
+            .map(crate::util::is_prime)
+            .unwrap_or(false)
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::zoo::{abelian, cyclic, dihedral, quaternion};
+    use crate::{Term, Word};
 
     #[test]
     fn test_trivial_group_properties() {
@@ -519,5 +547,30 @@ mod tests {
         for n in &chief {
             assert!(n.is_normal(), "chief series subgroup is not normal");
         }
+    }
+
+    #[test]
+    fn test_is_supersolvable() {
+        use crate::Builder;
+
+        // Trivial group is supersolvable (vacuously: 0 chief factors)
+        assert!(is_supersolvable(&cyclic(1)));
+
+        // Standard groups
+        assert!(is_supersolvable(&cyclic(6)));
+        assert!(is_supersolvable(&abelian(&[2, 2])));
+        assert!(is_supersolvable(&dihedral(3)));
+        assert!(is_supersolvable(&quaternion(2)));
+
+        // A_4 is solvable but not supersolvable (chief factor V_4 has order 4)
+        let a4 = Builder::new(vec![3, 2, 2])
+            .unwrap()
+            .add_commutator(1, 0, Word::from_term(2, 1))
+            .unwrap()
+            .add_commutator(2, 0, Word::new(vec![Term::new(1, 1), Term::new(2, 1)]))
+            .unwrap()
+            .build();
+        assert_eq!(a4.order(), 12);
+        assert!(!is_supersolvable(&a4));
     }
 }

@@ -89,7 +89,8 @@ pub fn quaternion(n: u32) -> Presentation {
 mod tests {
     use super::*;
     use crate::{
-        Element, GeneratingSequence, is_abelian, is_nilpotent, nilpotency_class, verify_consistency,
+        Element, GeneratingSequence, is_abelian, is_nilpotent, is_supersolvable, nilpotency_class,
+        verify_consistency,
     };
 
     #[test]
@@ -148,6 +149,13 @@ mod tests {
                     4 * n
                 );
             }
+
+            // All generalized quaternion / dicyclic groups Q_{4n} are supersolvable
+            assert!(
+                is_supersolvable(&pres),
+                "Quaternion group Q_{{{}}} must be supersolvable",
+                4 * n
+            );
         }
     }
 

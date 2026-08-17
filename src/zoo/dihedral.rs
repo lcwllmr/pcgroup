@@ -90,7 +90,8 @@ pub fn dihedral(n: u32) -> Presentation {
 mod tests {
     use super::*;
     use crate::{
-        Element, GeneratingSequence, is_abelian, is_nilpotent, nilpotency_class, verify_consistency,
+        Element, GeneratingSequence, is_abelian, is_nilpotent, is_supersolvable, nilpotency_class,
+        verify_consistency,
     };
 
     #[test]
@@ -155,6 +156,13 @@ mod tests {
                     2 * n
                 );
             }
+
+            // All dihedral groups D_{2n} are supersolvable
+            assert!(
+                is_supersolvable(&pres),
+                "Dihedral group D_{{{}}} must be supersolvable",
+                2 * n
+            );
         }
     }
 

@@ -60,7 +60,8 @@ pub fn abelian(orders: &[u32]) -> Presentation {
 mod tests {
     use super::*;
     use crate::{
-        Element, GeneratingSequence, is_abelian, is_nilpotent, nilpotency_class, verify_consistency,
+        Element, GeneratingSequence, is_abelian, is_nilpotent, is_supersolvable, nilpotency_class,
+        verify_consistency,
     };
 
     #[test]
@@ -110,6 +111,10 @@ mod tests {
             assert!(
                 is_nilpotent(&full, &gens),
                 "Abelian group with factors {factors:?} must be nilpotent"
+            );
+            assert!(
+                is_supersolvable(&pres),
+                "Abelian group with factors {factors:?} must be supersolvable"
             );
         }
     }

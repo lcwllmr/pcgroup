@@ -41,7 +41,8 @@ pub fn cyclic(n: u32) -> Presentation {
 mod tests {
     use super::*;
     use crate::{
-        Element, GeneratingSequence, is_abelian, is_nilpotent, nilpotency_class, verify_consistency,
+        Element, GeneratingSequence, is_abelian, is_nilpotent, is_supersolvable, nilpotency_class,
+        verify_consistency,
     };
 
     #[test]
@@ -81,6 +82,10 @@ mod tests {
             assert!(
                 is_nilpotent(&full, &gens),
                 "Cyclic group C_{n} must be nilpotent"
+            );
+            assert!(
+                is_supersolvable(&pres),
+                "Cyclic group C_{n} must be supersolvable"
             );
         }
     }
