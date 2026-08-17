@@ -18,3 +18,6 @@ pub use crate::element::Element;
 
 mod consistency;
 pub use crate::consistency::{ConsistencyError, verify_consistency};
+
+mod generating_sequence;
+pub use crate::generating_sequence::GeneratingSequence;

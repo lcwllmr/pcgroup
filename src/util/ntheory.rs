@@ -54,6 +54,37 @@ pub fn factorize(mut n: u32) -> Vec<u32> {
     factors
 }
 
+/// Computes the modular multiplicative inverse of `a` modulo `m` such that `(a * x) % m == 1`.
+///
+/// Returns `None` if `m <= 1` or if `gcd(a, m) != 1`.
+pub fn mod_inverse(a: u32, m: u32) -> Option<u32> {
+    if m <= 1 {
+        return None;
+    }
+    let mut t = 0i64;
+    let mut newt = 1i64;
+    let mut r = m as i64;
+    let mut newr = (a % m) as i64;
+
+    while newr != 0 {
+        let q = r / newr;
+        let next_t = t - q * newt;
+        t = newt;
+        newt = next_t;
+        let next_r = r - q * newr;
+        r = newr;
+        newr = next_r;
+    }
+
+    if r > 1 {
+        return None;
+    }
+    if t < 0 {
+        t += m as i64;
+    }
+    Some(t as u32)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -86,5 +117,15 @@ mod tests {
         for &(n, expected) in cases {
             assert_eq!(factorize(n), expected, "factorization mismatch for {n}");
         }
+    }
+
+    #[test]
+    fn test_mod_inverse() {
+        assert_eq!(mod_inverse(3, 7), Some(5)); // 3 * 5 = 15 = 1 mod 7
+        assert_eq!(mod_inverse(2, 5), Some(3)); // 2 * 3 = 6 = 1 mod 5
+        assert_eq!(mod_inverse(1, 13), Some(1));
+        assert_eq!(mod_inverse(0, 5), None);
+        assert_eq!(mod_inverse(2, 4), None);
+        assert_eq!(mod_inverse(5, 1), None);
     }
 }
