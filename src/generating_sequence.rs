@@ -16,12 +16,12 @@ use crate::{Element, Presentation, Word};
 /// - Each leading generator index is unique.
 /// - Each element is normalized to have a leading exponent of `1`.
 ///
-/// # Example: Subgroups of D_8
+/// # Example: Subgroups of D8
 /// ```
 /// use pcgroup::zoo::dihedral;
 /// use pcgroup::{Element, GeneratingSequence};
 ///
-/// // D_8 of order 8: reflection g0 (order 2) and rotation g1 (order 4)
+/// // D8 of order 8: reflection g0 (order 2) and rotation g1 (order 4)
 /// let d8 = dihedral(4);
 /// let s = Element::from_generator(0, 1, &d8);
 /// let r = Element::from_generator(1, 1, &d8);
@@ -34,6 +34,9 @@ use crate::{Element, Presentation, Word};
 /// // Membership testing
 /// assert!(rot_subgroup.contains(&r));
 /// assert!(!rot_subgroup.contains(&s));
+///
+/// // Normality
+/// assert!(rot_subgroup.is_normal());
 /// ```
 #[derive(Debug, Clone)]
 pub struct GeneratingSequence<'a> {
@@ -255,6 +258,59 @@ impl<'a> GeneratingSequence<'a> {
             None
         }
     }
+    /// Computes the normal closure of this subgroup in the parent group `G`.
+    ///
+    /// The normal closure `H^G` is the smallest normal subgroup of `G` containing `self`.
+    pub fn normal_closure(&self) -> Self {
+        let full_gens: Vec<_> = (0..self.pres.num_gens())
+            .map(|i| Element::from_generator(i, 1, self.pres))
+            .collect();
+        self.normal_closure_in(&full_gens)
+    }
+
+    /// Computes the normal closure of this subgroup under the action of `group_gens`.
+    pub fn normal_closure_in(&self, group_gens: &[Element<'a>]) -> Self {
+        let mut current_gens = self.elements.clone();
+        let mut n = Self::from_generators(self.pres, &current_gens);
+
+        let mut i = 0;
+        while i < n.elements.len() {
+            let h = &n.elements[i];
+            let mut grew = false;
+
+            for g in group_gens {
+                let conj = &g.inverse() * &(h * g);
+                if !n.contains(&conj) {
+                    current_gens.push(conj);
+                    n = Self::from_generators(self.pres, &current_gens);
+                    grew = true;
+                    break;
+                }
+            }
+
+            if grew {
+                i = 0;
+            } else {
+                i += 1;
+            }
+        }
+
+        n
+    }
+
+    /// Returns `true` if this subgroup is normal in the parent group `G`.
+    pub fn is_normal(&self) -> bool {
+        for h in &self.elements {
+            for i in 0..self.pres.num_gens() {
+                let g = Element::from_generator(i, 1, self.pres);
+                let conj = &g.inverse() * &(h * &g);
+                if !self.contains(&conj) {
+                    return false;
+                }
+            }
+        }
+        true
+    }
 }
 
 impl<'a> fmt::Display for GeneratingSequence<'a> {
@@ -418,5 +474,33 @@ mod tests {
         let sub_s = GeneratingSequence::from_generators(&pres, &[s.clone()]);
         assert_eq!(sub_s.express_in_basis(s).unwrap().to_string(), "g0");
         assert!(sub_s.express_in_basis(r).is_none());
+    }
+
+    #[test]
+    fn test_normal_closure_and_is_normal() {
+        // In D_8:
+        let pres = dihedral(4);
+        let s = Element::from_generator(0, 1, &pres); // reflection
+        let r = Element::from_generator(1, 1, &pres); // rotation
+
+        // Rotation subgroup <r> is normal of index 2
+        let sub_r = GeneratingSequence::from_generators(&pres, &[r]);
+        assert!(sub_r.is_normal());
+        assert_eq!(sub_r.normal_closure(), sub_r);
+
+        // Reflection subgroup <s> is not normal
+        let sub_s = GeneratingSequence::from_generators(&pres, &[s]);
+        assert!(!sub_s.is_normal());
+
+        // Normal closure of <s> in D_8 is V_4 = <s, r^2> of order 4
+        let norm_s = sub_s.normal_closure();
+        assert_eq!(norm_s.order(), 4);
+        assert!(norm_s.is_normal());
+
+        // In Q_8: all subgroups are normal (Hamiltonian group)
+        let q_pres = quaternion(2);
+        let x = Element::from_generator(1, 1, &q_pres);
+        let sub_x = GeneratingSequence::from_generators(&q_pres, &[x]);
+        assert!(sub_x.is_normal());
     }
 }
