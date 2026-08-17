@@ -4,7 +4,8 @@
 //! [lower central series](lower_central_series), computing [commutator subgroups](commutator_subgroup),
 //! and testing structural properties including [abelianity](is_abelian) and [nilpotency](nilpotency_class).
 
-use crate::{Element, GeneratingSequence};
+use crate::util::{ModPMatrix, composition_series};
+use crate::{Element, GeneratingSequence, Presentation};
 
 /// Computes the commutator subgroup `[h_group, k_group]` closed under `group_gens`.
 ///
@@ -207,6 +208,173 @@ pub fn is_nilpotent<'a>(group: &GeneratingSequence<'a>, group_gens: &[Element<'a
     nilpotency_class(group, group_gens).is_some()
 }
 
+/// Extracts the matrix representation of `group_gens` acting by conjugation on the section `V = n_i / n_next`.
+///
+/// Returns `(p, d, matrices, basis)` where `p` is the prime, `d` is the section dimension, `matrices`
+/// contains the `d x d` representation matrices for each generator in `group_gens`, and `basis`
+/// is the sequence of elements in `n_i` corresponding to the standard basis of the module.
+pub(crate) fn module_representation<'a>(
+    n_i: &GeneratingSequence<'a>,
+    n_next: &GeneratingSequence<'a>,
+    group_gens: &[Element<'a>],
+) -> (u32, usize, Vec<ModPMatrix>, Vec<Element<'a>>) {
+    // 1. Identify basis elements b_1, ..., b_d in n_i not in n_next
+    let mut basis = Vec::new();
+    for elem in n_i.elements() {
+        let rem = n_next.sift(elem.clone());
+        if !rem.is_identity() {
+            basis.push(elem.clone());
+        }
+    }
+
+    let d = basis.len();
+    if d == 0 {
+        return (2, 0, Vec::new(), Vec::new());
+    }
+
+    // 2. Prime p from relative order of the first generator in n_i not in n_next
+    let lead_gen = basis[0].leading_generator().unwrap();
+    let p = n_i.presentation().relative_order(lead_gen);
+
+    // 3. Construct representation matrices for each group generator
+    let mut matrices = Vec::with_capacity(group_gens.len());
+
+    for g in group_gens {
+        let g_inv = g.inverse();
+        let mut m_data = vec![vec![0u32; d]; d];
+
+        for (j, b_j) in basis.iter().enumerate() {
+            // Conjugate: w = g^{-1} * b_j * g
+            let w = &g_inv * b_j * g;
+            let mut rem = n_next.sift(w);
+
+            // Decompose remainder along basis b_1, ..., b_d
+            let mut col = vec![0u32; d];
+            for (k, b_k) in basis.iter().enumerate() {
+                if rem.is_identity() {
+                    break;
+                }
+                let lead_b = b_k.leading_generator().unwrap();
+                if rem.leading_generator() == Some(lead_b) {
+                    let exp_rem = rem.leading_exponent().unwrap();
+                    let exp_b = b_k.leading_exponent().unwrap();
+                    let coeff = (exp_rem / exp_b) % p;
+                    col[k] = coeff;
+                    if coeff > 0 {
+                        let b_inv_c = b_k.inverse().pow(coeff);
+                        rem = b_inv_c * rem;
+                        rem = n_next.sift(rem);
+                    }
+                }
+            }
+
+            for k in 0..d {
+                m_data[k][j] = col[k];
+            }
+        }
+
+        matrices.push(ModPMatrix {
+            data: m_data,
+            p,
+            rows: d,
+            cols: d,
+        });
+    }
+
+    (p, d, matrices, basis)
+}
+
+/// Computes a chief series of the given polycyclic group.
+///
+/// A chief series is a series of normal subgroups `1 = N_m < N_{m-1} < ... < N_0 = G`
+/// such that each factor `N_i / N_{i+1}` is a minimal normal subgroup of `G / N_{i+1}` (i.e., a chief factor).
+/// For finite solvable groups, these factors are elementary abelian `p`-groups.
+pub fn chief_series<'a>(pres: &'a Presentation) -> Vec<GeneratingSequence<'a>> {
+    let g = GeneratingSequence::full_group(pres);
+    let group_gens = g.elements().to_vec();
+
+    // 1. Construct an elementary abelian normal series
+    let mut elem_series = vec![g.clone()];
+    let mut current = g.clone();
+
+    while !current.is_trivial() {
+        let derived = commutator_subgroup(&current, &current, &group_gens);
+        let mut next_sub = derived.clone();
+
+        if derived.len() < current.len() {
+            // Find the prime for the top elementary abelian factor of current / derived
+            let mut found_prime = None;
+            for elem in current.elements() {
+                if !derived.contains(elem) {
+                    let lead = elem.leading_generator().unwrap();
+                    found_prime = Some(pres.relative_order(lead));
+                    break;
+                }
+            }
+
+            if let Some(p) = found_prime {
+                // Construct current^p * derived
+                let mut gens_p = derived.elements().to_vec();
+                for elem in current.elements() {
+                    gens_p.push(elem.pow(p));
+                }
+                let cand = GeneratingSequence::from_generators(pres, &gens_p);
+                if cand.len() < current.len() {
+                    next_sub = cand;
+                }
+            }
+        }
+
+        // Failsafe if not solvable or if p-core didn't shrink it
+        if next_sub.len() == current.len() {
+            if derived.len() < current.len() {
+                next_sub = derived;
+            } else {
+                break;
+            }
+        }
+
+        elem_series.push(next_sub.clone());
+        current = next_sub;
+    }
+
+    // 2. Submodule refinement for each layer
+    let mut chief = Vec::new();
+    chief.push(elem_series[0].clone());
+
+    for w in elem_series.windows(2) {
+        let n_i = &w[0];
+        let n_next = &w[1];
+
+        if n_i.len() == n_next.len() {
+            continue;
+        }
+
+        let (p, d, matrices, basis) = module_representation(n_i, n_next, &group_gens);
+        if d > 1 {
+            let chain = composition_series(&matrices, p, d);
+            for i in (1..chain.len() - 1).rev() {
+                let subspace = &chain[i];
+                let mut sub_gens = n_next.elements().to_vec();
+                for sub_b in &subspace.basis {
+                    let mut grp_elem = Element::identity(pres);
+                    for (k, &coeff) in sub_b.iter().enumerate() {
+                        if coeff > 0 {
+                            grp_elem = grp_elem * basis[k].pow(coeff);
+                        }
+                    }
+                    sub_gens.push(grp_elem);
+                }
+                let refined_sub = GeneratingSequence::from_generators(pres, &sub_gens);
+                chief.push(refined_sub);
+            }
+        }
+        chief.push(n_next.clone());
+    }
+
+    chief
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -319,5 +487,37 @@ mod tests {
         assert!(!is_abelian(&full_q12, &q12_gens));
         assert!(!is_nilpotent(&full_q12, &q12_gens));
         assert_eq!(nilpotency_class(&full_q12, &q12_gens), None);
+    }
+
+    #[test]
+    fn test_chief_series_d8() {
+        let pres = dihedral(4); // D_8
+        let chief = chief_series(&pres);
+
+        assert_eq!(chief.len(), 4);
+        assert_eq!(chief[0].order(), 8);
+        assert_eq!(chief[1].order(), 4);
+        assert_eq!(chief[2].order(), 2);
+        assert_eq!(chief[3].order(), 1);
+
+        for n in &chief {
+            assert!(n.is_normal(), "chief series subgroup is not normal");
+        }
+    }
+
+    #[test]
+    fn test_chief_series_q8() {
+        let pres = quaternion(2); // Q_8
+        let chief = chief_series(&pres);
+
+        assert_eq!(chief.len(), 4);
+        assert_eq!(chief[0].order(), 8);
+        assert_eq!(chief[1].order(), 4);
+        assert_eq!(chief[2].order(), 2);
+        assert_eq!(chief[3].order(), 1);
+
+        for n in &chief {
+            assert!(n.is_normal(), "chief series subgroup is not normal");
+        }
     }
 }

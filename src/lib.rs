@@ -22,7 +22,8 @@ pub use crate::consistency::{ConsistencyError, verify_consistency};
 mod generating_sequence;
 pub use crate::generating_sequence::GeneratingSequence;
 
-pub mod series;
+mod series;
 pub use crate::series::{
-    commutator_subgroup, is_abelian, is_nilpotent, lower_central_series, nilpotency_class,
+    chief_series, commutator_subgroup, is_abelian, is_nilpotent, lower_central_series,
+    nilpotency_class,
 };
