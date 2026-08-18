@@ -9,3 +9,6 @@ pub use self::dihedral::dihedral;
 
 mod quaternion;
 pub use self::quaternion::quaternion;
+
+mod affine1d;
+pub use self::affine1d::affine1d;
