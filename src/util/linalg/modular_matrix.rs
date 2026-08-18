@@ -12,14 +12,14 @@ use crate::util::mod_inverse;
 
 /// A matrix over the finite field `F_p`.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ModPMatrix {
+pub struct ModularMatrix {
     pub data: Vec<Vec<u32>>,
     pub p: u32,
     pub rows: usize,
     pub cols: usize,
 }
 
-impl ModPMatrix {
+impl ModularMatrix {
     /// Creates a new matrix with all zeros.
     pub fn zeros(rows: usize, cols: usize, p: u32) -> Self {
         Self {
@@ -73,7 +73,7 @@ impl ModPMatrix {
         basis
     }
 
-    /// Creates a matrix from raw 2D row-major data, reducing entries modulo $p$.
+    /// Creates a matrix from raw 2D row-major data, reducing entries modulo `p`.
     pub fn from_data(data: Vec<Vec<u32>>, p: u32) -> Self {
         let rows = data.len();
         let cols = if rows > 0 { data[0].len() } else { 0 };
@@ -84,15 +84,15 @@ impl ModPMatrix {
             }
         }
         Self {
-            data: normalized,
+            data,
             p,
             rows,
             cols,
         }
     }
 
-    /// Matrix addition modulo $p$.
-    pub fn add(&self, rhs: &ModPMatrix) -> ModPMatrix {
+    /// Matrix addition modulo `p`.
+    pub fn add(&self, rhs: &ModularMatrix) -> ModularMatrix {
         assert_eq!(self.rows, rhs.rows, "Matrix dimension mismatch in add");
         assert_eq!(self.cols, rhs.cols, "Matrix dimension mismatch in add");
         assert_eq!(self.p, rhs.p, "Field characteristic mismatch in add");
@@ -104,7 +104,7 @@ impl ModPMatrix {
                 data[r][c] = (self.data[r][c] + rhs.data[r][c]) % p;
             }
         }
-        ModPMatrix {
+        ModularMatrix {
             data,
             p,
             rows: self.rows,
@@ -112,8 +112,8 @@ impl ModPMatrix {
         }
     }
 
-    /// Matrix subtraction modulo $p$.
-    pub fn sub(&self, rhs: &ModPMatrix) -> ModPMatrix {
+    /// Matrix subtraction modulo `p`.
+    pub fn sub(&self, rhs: &ModularMatrix) -> ModularMatrix {
         assert_eq!(self.rows, rhs.rows, "Matrix dimension mismatch in sub");
         assert_eq!(self.cols, rhs.cols, "Matrix dimension mismatch in sub");
         assert_eq!(self.p, rhs.p, "Field characteristic mismatch in sub");
@@ -126,7 +126,7 @@ impl ModPMatrix {
                 data[r][c] = diff;
             }
         }
-        ModPMatrix {
+        ModularMatrix {
             data,
             p,
             rows: self.rows,
@@ -134,8 +134,8 @@ impl ModPMatrix {
         }
     }
 
-    /// Matrix multiplication modulo $p$.
-    pub fn mul(&self, rhs: &ModPMatrix) -> ModPMatrix {
+    /// Matrix multiplication modulo `p`.
+    pub fn mul(&self, rhs: &ModularMatrix) -> ModularMatrix {
         assert_eq!(self.cols, rhs.rows, "Matrix dimension mismatch in mul");
         assert_eq!(self.p, rhs.p, "Field characteristic mismatch in mul");
 
@@ -150,7 +150,7 @@ impl ModPMatrix {
                 data[r][c] = sum as u32;
             }
         }
-        ModPMatrix {
+        ModularMatrix {
             data,
             p: self.p,
             rows: self.rows,
@@ -158,8 +158,8 @@ impl ModPMatrix {
         }
     }
 
-    /// Multiplies the matrix by a scalar `lambda` in `F_p`.
-    pub fn scalar_mul(&self, scalar: u32) -> ModPMatrix {
+    /// Multiplies the matrix by a scalar `scalar` in `F_p`.
+    pub fn scalar_mul(&self, scalar: u32) -> ModularMatrix {
         let p = self.p as u64;
         let s = (scalar % self.p) as u64;
         let mut data = vec![vec![0; self.cols]; self.rows];
@@ -168,7 +168,7 @@ impl ModPMatrix {
                 data[r][c] = ((self.data[r][c] as u64 * s) % p) as u32;
             }
         }
-        ModPMatrix {
+        ModularMatrix {
             data,
             p: self.p,
             rows: self.rows,
@@ -284,13 +284,13 @@ impl ModPMatrix {
 
 /// A subspace of `F_p^d`, represented by a basis in row-echelon form.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ModPSubspace {
+pub struct ModularSubspace {
     pub basis: Vec<Vec<u32>>,
     pub d: usize,
     pub p: u32,
 }
 
-impl ModPSubspace {
+impl ModularSubspace {
     /// Creates an empty subspace `{0}`.
     pub fn zero(d: usize, p: u32) -> Self {
         Self {
@@ -303,7 +303,7 @@ impl ModPSubspace {
     /// Creates the full subspace `F_p^d`.
     pub fn full(d: usize, p: u32) -> Self {
         Self {
-            basis: ModPMatrix::standard_basis(d),
+            basis: ModularMatrix::standard_basis(d),
             d,
             p,
         }
@@ -313,7 +313,6 @@ impl ModPSubspace {
     pub fn add_vector(&mut self, mut v: Vec<u32>) -> bool {
         let p = self.p;
         for b in &self.basis {
-            // Find leading non-zero in b
             let lead_idx = b.iter().position(|&x| x != 0).unwrap();
             let factor = v[lead_idx];
             if factor != 0 {
@@ -325,18 +324,15 @@ impl ModPSubspace {
         }
 
         if let Some(lead_idx) = v.iter().position(|&x| x != 0) {
-            // Normalize v
             let inv = mod_inverse(v[lead_idx], p).unwrap();
             for i in lead_idx..self.d {
                 v[i] = ((v[i] as u64 * inv as u64) % p as u64) as u32;
             }
 
-            // Maintain echelon form (sort by leading index)
             let insert_idx = self
                 .basis
                 .partition_point(|b| b.iter().position(|&x| x != 0).unwrap() < lead_idx);
 
-            // Eliminate upwards
             for b in &mut self.basis[..insert_idx] {
                 let factor = b[lead_idx];
                 if factor != 0 {
@@ -362,12 +358,12 @@ impl ModPSubspace {
 
 /// Recursively computes a composition series of the `F_p[G]`-module `F_p^d`.
 /// Returns a chain of submodules `0 = V_0 < V_1 < ... < V_k = V`.
-pub fn composition_series(matrices: &[ModPMatrix], p: u32, d: usize) -> Vec<ModPSubspace> {
+pub fn composition_series(matrices: &[ModularMatrix], p: u32, d: usize) -> Vec<ModularSubspace> {
     if d == 0 {
-        return vec![ModPSubspace::zero(d, p)];
+        return vec![ModularSubspace::zero(d, p)];
     }
 
-    let mut chain = vec![ModPSubspace::zero(d, p), ModPSubspace::full(d, p)];
+    let mut chain = vec![ModularSubspace::zero(d, p), ModularSubspace::full(d, p)];
 
     let mut refined = true;
     while refined {
@@ -382,11 +378,9 @@ pub fn composition_series(matrices: &[ModPMatrix], p: u32, d: usize) -> Vec<ModP
             if upper.dim() - lower.dim() > 1 {
                 let mut found_intermediate = false;
 
-                // Spin vectors from upper to find a proper intermediate submodule
                 for b in &upper.basis {
                     let mut test = lower.clone();
                     if test.add_vector(b.clone()) {
-                        // vector not in lower
                         let mut head = 0;
                         while head < test.dim() {
                             let cv = test.basis[head].clone();
@@ -406,10 +400,9 @@ pub fn composition_series(matrices: &[ModPMatrix], p: u32, d: usize) -> Vec<ModP
                 }
 
                 if !found_intermediate {
-                    // Try vectors in nullspace of `(A - lambda I)`
                     'nullspace_search: for m in matrices {
                         for lambda in 0..p {
-                            let lambda_id = ModPMatrix::identity(d, p).scalar_mul(lambda);
+                            let lambda_id = ModularMatrix::identity(d, p).scalar_mul(lambda);
                             let shifted = m.sub(&lambda_id);
                             for null_v in shifted.nullspace() {
                                 let mut test = lower.clone();
@@ -423,8 +416,6 @@ pub fn composition_series(matrices: &[ModPMatrix], p: u32, d: usize) -> Vec<ModP
                                         head += 1;
                                     }
 
-                                    // Make sure we intersect with upper, since test might blow up outside upper
-                                    // For simplicity in this lite implementation, we only use this when upper is full
                                     if upper.dim() == d && test.dim() < d {
                                         new_chain.push(test);
                                         found_intermediate = true;
@@ -451,23 +442,23 @@ mod tests {
 
     #[test]
     fn test_matrix_rref_nullspace() {
-        let mut m = ModPMatrix::from_data(vec![vec![1, 2], vec![2, 1]], 3);
+        let mut m = ModularMatrix::from_data(vec![vec![1, 2], vec![2, 1]], 3);
         let (pivots, rank) = m.rref();
         assert_eq!(pivots, vec![0]);
         assert_eq!(rank, 1);
 
-        let ns = ModPMatrix::from_data(vec![vec![1, 2], vec![2, 1]], 3).nullspace();
+        let ns = ModularMatrix::from_data(vec![vec![1, 2], vec![2, 1]], 3).nullspace();
         assert_eq!(ns.len(), 1);
-        assert_eq!(ns[0], vec![1, 1]); // x + 2y = 0 => x + 2(1) = 0 => x = 1 mod 3
+        assert_eq!(ns[0], vec![1, 1]);
     }
 
     #[test]
     fn test_subspace_add() {
-        let mut sub = ModPSubspace::zero(3, 2);
+        let mut sub = ModularSubspace::zero(3, 2);
         assert!(sub.add_vector(vec![0, 1, 1]));
         assert!(sub.add_vector(vec![1, 1, 0]));
-        assert!(!sub.add_vector(vec![1, 0, 1])); // already in span
+        assert!(!sub.add_vector(vec![1, 0, 1]));
         assert_eq!(sub.dim(), 2);
-        assert_eq!(sub.basis, vec![vec![1, 0, 1], vec![0, 1, 1]]); // in rref
+        assert_eq!(sub.basis, vec![vec![1, 0, 1], vec![0, 1, 1]]);
     }
 }

@@ -1,5 +1,5 @@
 mod linalg;
-mod ntheory;
+pub use self::linalg::{ModularMatrix, ModularSubspace, composition_series};
 
-pub use self::linalg::{ModPMatrix, ModPSubspace, composition_series};
+mod ntheory;
 pub use self::ntheory::{factorize, is_prime, mod_inverse};

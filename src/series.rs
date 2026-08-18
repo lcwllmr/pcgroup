@@ -4,7 +4,7 @@
 //! [lower central series](lower_central_series), computing [commutator subgroups](commutator_subgroup),
 //! and testing structural properties including [abelianity](is_abelian) and [nilpotency](nilpotency_class).
 
-use crate::util::{ModPMatrix, composition_series};
+use crate::util::{ModularMatrix, composition_series};
 use crate::{Element, GeneratingSequence, Presentation};
 
 /// Computes the commutator subgroup `[h_group, k_group]` closed under `group_gens`.
@@ -282,7 +282,7 @@ pub(crate) fn module_representation<'a>(
     n_i: &GeneratingSequence<'a>,
     n_next: &GeneratingSequence<'a>,
     group_gens: &[Element<'a>],
-) -> (u32, usize, Vec<ModPMatrix>, Vec<Element<'a>>) {
+) -> (u32, usize, Vec<ModularMatrix>, Vec<Element<'a>>) {
     // 1. Identify basis elements b_1, ..., b_d in n_i not in n_next
     let mut basis = Vec::new();
     for elem in n_i.elements() {
@@ -338,7 +338,7 @@ pub(crate) fn module_representation<'a>(
             }
         }
 
-        matrices.push(ModPMatrix {
+        matrices.push(ModularMatrix {
             data: m_data,
             p,
             rows: d,
