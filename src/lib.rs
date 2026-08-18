@@ -98,3 +98,8 @@ pub use crate::series::{
     is_nilpotent_subgroup, is_supersolvable, lower_central_series, nilpotency_class,
     nilpotency_class_subgroup,
 };
+
+mod baum_clausen;
+pub use crate::baum_clausen::{
+    BaumClausenError, BaumClausenStage, Representation, irreducible_representations,
+};

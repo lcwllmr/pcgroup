@@ -283,7 +283,10 @@ pub fn affine1d(p: u32, r: u32) -> Presentation {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{is_abelian, is_nilpotent, is_supersolvable, nilpotency_class, verify_consistency};
+    use crate::{
+        irreducible_representations, is_abelian, is_nilpotent, is_supersolvable, nilpotency_class,
+        verify_consistency,
+    };
 
     #[test]
     fn test_affine1d_groups() {
@@ -342,6 +345,40 @@ mod tests {
                 r == 1,
                 "Supersolvability mismatch for AGL(1, {p}^{r}): r={r}"
             );
+
+            // Irreducible representations check for supersolvable cases (r = 1)
+            if r == 1 {
+                let irreps = irreducible_representations(&pres).expect("supersolvable");
+                let count_1d = irreps.iter().filter(|rep| rep.dim == 1).count();
+                let expected_1d = if p == 2 { 2 } else { (p - 1) as usize };
+                assert_eq!(
+                    count_1d, expected_1d,
+                    "1D irrep count mismatch for AGL(1, {p})"
+                );
+
+                if p > 2 {
+                    let count_high_d = irreps
+                        .iter()
+                        .filter(|rep| rep.dim == (p - 1) as usize)
+                        .count();
+                    assert_eq!(
+                        count_high_d, 1,
+                        "High-dimensional irrep count mismatch for AGL(1, {p})"
+                    );
+                }
+
+                assert_eq!(
+                    irreps.len(),
+                    if p == 2 { 2 } else { p as usize },
+                    "Total irrep count mismatch for AGL(1, {p})"
+                );
+                let sum_sq: usize = irreps.iter().map(|rep| rep.dim * rep.dim).sum();
+                assert_eq!(
+                    sum_sq,
+                    (p * (p - 1)) as usize,
+                    "Sum of squared dimensions mismatch for AGL(1, {p})"
+                );
+            }
         }
     }
 

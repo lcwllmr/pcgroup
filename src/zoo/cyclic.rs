@@ -40,7 +40,10 @@ pub fn cyclic(n: u32) -> Presentation {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{is_abelian, is_nilpotent, is_supersolvable, nilpotency_class, verify_consistency};
+    use crate::{
+        irreducible_representations, is_abelian, is_nilpotent, is_supersolvable, nilpotency_class,
+        verify_consistency,
+    };
 
     #[test]
     fn test_cyclic_groups() {
@@ -73,6 +76,21 @@ mod tests {
                 is_supersolvable(&pres),
                 "Cyclic group C_{n} must be supersolvable"
             );
+
+            // Irreducible representations check
+            let irreps = irreducible_representations(&pres).expect("supersolvable");
+            assert_eq!(irreps.len(), n as usize, "Irrep count mismatch for C_{n}");
+            let sum_sq: usize = irreps.iter().map(|r| r.dim * r.dim).sum();
+            assert_eq!(
+                sum_sq, n as usize,
+                "Sum of squared dimensions mismatch for C_{n}"
+            );
+            for rep in &irreps {
+                assert_eq!(
+                    rep.dim, 1,
+                    "All irreps of cyclic group C_{n} must be 1-dimensional"
+                );
+            }
         }
     }
 

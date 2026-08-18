@@ -85,6 +85,62 @@ pub fn mod_inverse(a: u32, m: u32) -> Option<u32> {
     Some(t as u32)
 }
 
+/// Computes the greatest common divisor of `a` and `b`.
+#[inline]
+pub fn gcd(mut a: u32, mut b: u32) -> u32 {
+    while b != 0 {
+        let t = b;
+        b = a % b;
+        a = t;
+    }
+    a
+}
+
+/// Computes the least common multiple of `a` and `b`.
+#[inline]
+pub fn lcm(a: u32, b: u32) -> u32 {
+    if a == 0 || b == 0 {
+        0
+    } else {
+        ((a as u64 / gcd(a, b) as u64) * b as u64) as u32
+    }
+}
+
+/// Solves `p * c == s (mod e)` for all `c in 0..e`.
+///
+/// In the context of roots of unity, this computes all `p`-th roots of `exp(2*pi*i*s/e)`
+/// in the cyclic group of `e`-th roots of unity.
+pub fn extract_roots(s: u32, p: u32, e: u32) -> Vec<u32> {
+    if e == 0 {
+        return Vec::new();
+    }
+    let s_norm = s % e;
+    let g = gcd(p, e);
+    if !s_norm.is_multiple_of(g) {
+        return Vec::new();
+    }
+    let p_prime = p / g;
+    let s_prime = s_norm / g;
+    let e_prime = e / g;
+
+    if e_prime == 1 {
+        let mut roots = Vec::with_capacity(g as usize);
+        for k in 0..g {
+            roots.push(k);
+        }
+        return roots;
+    }
+
+    let inv = mod_inverse(p_prime, e_prime).unwrap_or(0);
+    let c0 = ((s_prime as u64 * inv as u64) % e_prime as u64) as u32;
+
+    let mut roots = Vec::with_capacity(g as usize);
+    for k in 0..g {
+        roots.push(c0 + k * e_prime);
+    }
+    roots
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -127,5 +183,13 @@ mod tests {
         assert_eq!(mod_inverse(0, 5), None);
         assert_eq!(mod_inverse(2, 4), None);
         assert_eq!(mod_inverse(5, 1), None);
+    }
+
+    #[test]
+    fn test_extract_roots() {
+        assert_eq!(extract_roots(0, 2, 4), vec![0, 2]);
+        assert_eq!(extract_roots(2, 2, 4), vec![1, 3]);
+        assert_eq!(extract_roots(0, 3, 6), vec![0, 2, 4]);
+        assert_eq!(extract_roots(1, 2, 4), vec![]);
     }
 }

@@ -89,11 +89,14 @@ pub fn dihedral(n: u32) -> Presentation {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{is_abelian, is_nilpotent, is_supersolvable, nilpotency_class, verify_consistency};
+    use crate::{
+        irreducible_representations, is_abelian, is_nilpotent, is_supersolvable, nilpotency_class,
+        verify_consistency,
+    };
 
     #[test]
     fn test_dihedral_groups() {
-        let orders = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 16, 20, 24, 30, 60];
+        let orders: [u32; 16] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 16, 20, 24, 30, 60];
         for &n in &orders {
             let pres = dihedral(n);
             assert_eq!(
@@ -153,6 +156,46 @@ mod tests {
             assert!(
                 is_supersolvable(&pres),
                 "Dihedral group D_{{{}}} must be supersolvable",
+                2 * n
+            );
+
+            // Irreducible representations check
+            let irreps = irreducible_representations(&pres).expect("supersolvable");
+            let (expected_1d, expected_2d) = if n == 1 {
+                (2, 0)
+            } else if n == 2 {
+                (4, 0)
+            } else if n % 2 != 0 {
+                (2, (n as usize - 1) / 2)
+            } else {
+                (4, (n as usize - 2) / 2)
+            };
+
+            let count_1d = irreps.iter().filter(|r| r.dim == 1).count();
+            let count_2d = irreps.iter().filter(|r| r.dim == 2).count();
+            assert_eq!(
+                count_1d,
+                expected_1d,
+                "1D irrep count mismatch for dihedral D_{{{}}}",
+                2 * n
+            );
+            assert_eq!(
+                count_2d,
+                expected_2d,
+                "2D irrep count mismatch for dihedral D_{{{}}}",
+                2 * n
+            );
+            assert_eq!(
+                irreps.len(),
+                expected_1d + expected_2d,
+                "Total irrep count mismatch for dihedral D_{{{}}}",
+                2 * n
+            );
+            let sum_sq: usize = irreps.iter().map(|r| r.dim * r.dim).sum();
+            assert_eq!(
+                sum_sq,
+                (2 * n) as usize,
+                "Sum of squared dimensions mismatch for dihedral D_{{{}}}",
                 2 * n
             );
         }
