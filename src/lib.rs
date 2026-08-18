@@ -24,6 +24,7 @@ pub use crate::generating_sequence::GeneratingSequence;
 
 mod series;
 pub use crate::series::{
-    chief_series, commutator_subgroup, is_abelian, is_nilpotent, is_supersolvable,
-    lower_central_series, nilpotency_class,
+    chief_series, commutator_subgroup, is_abelian, is_abelian_subgroup, is_nilpotent,
+    is_nilpotent_subgroup, is_supersolvable, lower_central_series, nilpotency_class,
+    nilpotency_class_subgroup,
 };

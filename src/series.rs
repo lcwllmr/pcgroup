@@ -52,27 +52,42 @@ pub fn commutator_subgroup<'a>(
     c.normal_closure_in(group_gens)
 }
 
-/// Checks if a group or subgroup is abelian.
+/// Checks whether a polycyclic group is abelian.
 ///
-/// A group `H` is abelian if and only if its derived (commutator) subgroup `[H, H]` is trivial (`{1}`).
+/// A group `G` is abelian if and only if all commutator relations `[g_i, g_j]` are trivial
+/// and its derived subgroup `[G, G]` is trivial (`{1}`).
 ///
 /// # Examples
 /// ```
 /// use pcgroup::zoo::{cyclic, dihedral};
-/// use pcgroup::{Element, GeneratingSequence, is_abelian};
+/// use pcgroup::is_abelian;
+///
+/// assert!(is_abelian(&cyclic(6)));
+/// assert!(!is_abelian(&dihedral(3))); // S_3 is non-abelian
+/// ```
+#[inline]
+pub fn is_abelian(pres: &Presentation) -> bool {
+    let full = GeneratingSequence::full_group(pres);
+    let group_gens = full.elements();
+    is_abelian_subgroup(&full, group_gens)
+}
+
+/// Checks if a subgroup is abelian under the action of `group_gens`.
+///
+/// A subgroup `H` is abelian if and only if its derived (commutator) subgroup `[H, H]` is trivial (`{1}`).
+///
+/// # Examples
+/// ```
+/// use pcgroup::zoo::cyclic;
+/// use pcgroup::{Element, GeneratingSequence, is_abelian_subgroup};
 ///
 /// let c6 = cyclic(6);
 /// let full_c6 = GeneratingSequence::full_group(&c6);
 /// let c6_gens: Vec<_> = (0..c6.num_gens()).map(|i| Element::from_generator(i, 1, &c6)).collect();
-/// assert!(is_abelian(&full_c6, &c6_gens));
-///
-/// let d6 = dihedral(3); // S_3 of order 6 (non-abelian)
-/// let full_d6 = GeneratingSequence::full_group(&d6);
-/// let d6_gens: Vec<_> = (0..d6.num_gens()).map(|i| Element::from_generator(i, 1, &d6)).collect();
-/// assert!(!is_abelian(&full_d6, &d6_gens));
+/// assert!(is_abelian_subgroup(&full_c6, &c6_gens));
 /// ```
 #[inline]
-pub fn is_abelian<'a>(group: &GeneratingSequence<'a>, group_gens: &[Element<'a>]) -> bool {
+pub fn is_abelian_subgroup<'a>(group: &GeneratingSequence<'a>, group_gens: &[Element<'a>]) -> bool {
     commutator_subgroup(group, group, group_gens).is_trivial()
 }
 
@@ -140,11 +155,11 @@ pub fn lower_central_series<'a>(
     })
 }
 
-/// Computes the nilpotency class of a polycyclic group or subgroup.
+/// Computes the nilpotency class of a polycyclic group.
 ///
 /// Returns `Some(c)` where `c` is the nilpotency class if the group is nilpotent:
-/// - `c = 0` if `group` is the trivial group `{1}`.
-/// - `c = 1` if `group` is non-trivial and abelian (`[G, G] = {1}`).
+/// - `c = 0` if `pres` is the trivial group `{1}`.
+/// - `c = 1` if `pres` is non-trivial and abelian (`[G, G] = {1}`).
 /// - `c >= 2` if the lower central series terminates at `{1}` in `c + 1` terms (`gamma_{c+1} = {1}` with `gamma_c != {1}`).
 ///
 /// Returns `None` if the group is not nilpotent (i.e. the lower central series stabilizes at a non-trivial subgroup).
@@ -152,27 +167,57 @@ pub fn lower_central_series<'a>(
 /// # Examples
 /// ```
 /// use pcgroup::zoo::{abelian, dihedral, quaternion};
-/// use pcgroup::{Element, GeneratingSequence, nilpotency_class};
+/// use pcgroup::nilpotency_class;
+///
+/// // Klein 4-group: abelian, nilpotency class 1
+/// assert_eq!(nilpotency_class(&abelian(&[2, 2])), Some(1));
+///
+/// // Q_8: class 2 nilpotent
+/// assert_eq!(nilpotency_class(&quaternion(2)), Some(2));
+///
+/// // S_3 = D_6: non-nilpotent (stabilizes at A_3)
+/// assert_eq!(nilpotency_class(&dihedral(3)), None);
+/// ```
+#[inline]
+pub fn nilpotency_class(pres: &Presentation) -> Option<usize> {
+    let full = GeneratingSequence::full_group(pres);
+    let group_gens = full.elements();
+    nilpotency_class_subgroup(&full, group_gens)
+}
+
+/// Computes the nilpotency class of a polycyclic subgroup under the action of `group_gens`.
+///
+/// Returns `Some(c)` where `c` is the nilpotency class if the subgroup is nilpotent:
+/// - `c = 0` if `group` is the trivial subgroup `{1}`.
+/// - `c = 1` if `group` is non-trivial and abelian (`[H, H] = {1}`).
+/// - `c >= 2` if the lower central series terminates at `{1}` in `c + 1` terms (`gamma_{c+1} = {1}` with `gamma_c != {1}`).
+///
+/// Returns `None` if the subgroup is not nilpotent (i.e. the lower central series stabilizes at a non-trivial subgroup).
+///
+/// # Examples
+/// ```
+/// use pcgroup::zoo::{abelian, dihedral, quaternion};
+/// use pcgroup::{Element, GeneratingSequence, nilpotency_class_subgroup};
 ///
 /// // Klein 4-group: abelian, nilpotency class 1
 /// let v4 = abelian(&[2, 2]);
 /// let full_v4 = GeneratingSequence::full_group(&v4);
 /// let v4_gens: Vec<_> = (0..v4.num_gens()).map(|i| Element::from_generator(i, 1, &v4)).collect();
-/// assert_eq!(nilpotency_class(&full_v4, &v4_gens), Some(1));
+/// assert_eq!(nilpotency_class_subgroup(&full_v4, &v4_gens), Some(1));
 ///
 /// // Q_8: class 2 nilpotent
 /// let q8 = quaternion(2);
 /// let full_q8 = GeneratingSequence::full_group(&q8);
 /// let q8_gens: Vec<_> = (0..q8.num_gens()).map(|i| Element::from_generator(i, 1, &q8)).collect();
-/// assert_eq!(nilpotency_class(&full_q8, &q8_gens), Some(2));
+/// assert_eq!(nilpotency_class_subgroup(&full_q8, &q8_gens), Some(2));
 ///
 /// // S_3 = D_6: non-nilpotent (stabilizes at A_3)
 /// let s3 = dihedral(3);
 /// let full_s3 = GeneratingSequence::full_group(&s3);
 /// let s3_gens: Vec<_> = (0..s3.num_gens()).map(|i| Element::from_generator(i, 1, &s3)).collect();
-/// assert_eq!(nilpotency_class(&full_s3, &s3_gens), None);
+/// assert_eq!(nilpotency_class_subgroup(&full_s3, &s3_gens), None);
 /// ```
-pub fn nilpotency_class<'a>(
+pub fn nilpotency_class_subgroup<'a>(
     group: &GeneratingSequence<'a>,
     group_gens: &[Element<'a>],
 ) -> Option<usize> {
@@ -184,28 +229,48 @@ pub fn nilpotency_class<'a>(
     }
 }
 
-/// Checks whether a polycyclic group or subgroup is nilpotent.
+/// Checks whether a polycyclic group is nilpotent.
+///
+/// Returns `true` if the nilpotency class is finite, or `false` otherwise.
+///
+/// # Examples
+/// ```
+/// use pcgroup::zoo::dihedral;
+/// use pcgroup::is_nilpotent;
+///
+/// assert!(is_nilpotent(&dihedral(4)));
+/// assert!(!is_nilpotent(&dihedral(3)));
+/// ```
+#[inline]
+pub fn is_nilpotent(pres: &Presentation) -> bool {
+    nilpotency_class(pres).is_some()
+}
+
+/// Checks whether a polycyclic subgroup is nilpotent under the action of `group_gens`.
 ///
 /// Returns `true` if the nilpotency class is finite, or `false` otherwise.
 ///
 /// # Examples
 /// ```
 /// use pcgroup::zoo::{dihedral, quaternion};
-/// use pcgroup::{Element, GeneratingSequence, is_nilpotent};
+/// use pcgroup::{Element, GeneratingSequence, is_nilpotent_subgroup};
 ///
 /// let d8 = dihedral(4);
 /// let full_d8 = GeneratingSequence::full_group(&d8);
 /// let d8_gens: Vec<_> = (0..d8.num_gens()).map(|i| Element::from_generator(i, 1, &d8)).collect();
-/// assert!(is_nilpotent(&full_d8, &d8_gens));
+/// assert!(is_nilpotent_subgroup(&full_d8, &d8_gens));
 ///
 /// let s3 = dihedral(3);
 /// let full_s3 = GeneratingSequence::full_group(&s3);
 /// let s3_gens: Vec<_> = (0..s3.num_gens()).map(|i| Element::from_generator(i, 1, &s3)).collect();
-/// assert!(!is_nilpotent(&full_s3, &s3_gens));
+/// assert!(!is_nilpotent_subgroup(&full_s3, &s3_gens));
 /// ```
 #[inline]
-pub fn is_nilpotent<'a>(group: &GeneratingSequence<'a>, group_gens: &[Element<'a>]) -> bool {
-    nilpotency_class(group, group_gens).is_some()
+pub fn is_nilpotent_subgroup<'a>(
+    group: &GeneratingSequence<'a>,
+    group_gens: &[Element<'a>],
+) -> bool {
+    nilpotency_class_subgroup(group, group_gens).is_some()
 }
 
 /// Extracts the matrix representation of `group_gens` acting by conjugation on the section `V = n_i / n_next`.
@@ -414,9 +479,16 @@ mod tests {
         let triv = GeneratingSequence::trivial(&pres);
         let gens = vec![];
 
-        assert!(is_abelian(&triv, &gens));
-        assert!(is_nilpotent(&triv, &gens));
-        assert_eq!(nilpotency_class(&triv, &gens), Some(0));
+        assert!(is_abelian(&pres));
+        assert!(is_nilpotent(&pres));
+        assert_eq!(nilpotency_class(&pres), Some(0));
+
+        assert!(is_abelian_subgroup(&triv, &gens));
+        assert!(is_nilpotent_subgroup(&triv, &gens));
+        assert_eq!(nilpotency_class_subgroup(&triv, &gens), Some(0));
+        assert!(triv.is_abelian());
+        assert!(triv.is_nilpotent());
+        assert_eq!(triv.nilpotency_class(), Some(0));
 
         let lcs = lower_central_series(&triv, &gens);
         assert_eq!(lcs.len(), 1);
@@ -426,13 +498,19 @@ mod tests {
     #[test]
     fn test_cyclic_and_abelian_series() {
         let pres = cyclic(12);
+        assert!(is_abelian(&pres));
+        assert!(is_nilpotent(&pres));
+        assert_eq!(nilpotency_class(&pres), Some(1));
+
         let full = GeneratingSequence::full_group(&pres);
         let gens: Vec<_> = (0..pres.num_gens())
             .map(|i| Element::from_generator(i, 1, &pres))
             .collect();
 
-        assert!(is_abelian(&full, &gens));
-        assert_eq!(nilpotency_class(&full, &gens), Some(1));
+        assert!(is_abelian_subgroup(&full, &gens));
+        assert_eq!(nilpotency_class_subgroup(&full, &gens), Some(1));
+        assert!(full.is_abelian());
+        assert_eq!(full.nilpotency_class(), Some(1));
 
         let lcs = lower_central_series(&full, &gens);
         assert_eq!(lcs.len(), 2);
@@ -440,27 +518,35 @@ mod tests {
         assert_eq!(lcs[1].order(), 1);
 
         let v4 = abelian(&[2, 2]);
+        assert!(is_abelian(&v4));
+        assert!(is_nilpotent(&v4));
+        assert_eq!(nilpotency_class(&v4), Some(1));
+
         let full_v4 = GeneratingSequence::full_group(&v4);
         let v4_gens: Vec<_> = (0..v4.num_gens())
             .map(|i| Element::from_generator(i, 1, &v4))
             .collect();
 
-        assert!(is_abelian(&full_v4, &v4_gens));
-        assert_eq!(nilpotency_class(&full_v4, &v4_gens), Some(1));
+        assert!(is_abelian_subgroup(&full_v4, &v4_gens));
+        assert_eq!(nilpotency_class_subgroup(&full_v4, &v4_gens), Some(1));
     }
 
     #[test]
     fn test_dihedral_series_and_nilpotency() {
         // D_8 of order 8 (nilpotent of class 2)
         let d8 = dihedral(4);
+        assert!(!is_abelian(&d8));
+        assert!(is_nilpotent(&d8));
+        assert_eq!(nilpotency_class(&d8), Some(2));
+
         let full_d8 = GeneratingSequence::full_group(&d8);
         let d8_gens: Vec<_> = (0..d8.num_gens())
             .map(|i| Element::from_generator(i, 1, &d8))
             .collect();
 
-        assert!(!is_abelian(&full_d8, &d8_gens));
-        assert!(is_nilpotent(&full_d8, &d8_gens));
-        assert_eq!(nilpotency_class(&full_d8, &d8_gens), Some(2));
+        assert!(!is_abelian_subgroup(&full_d8, &d8_gens));
+        assert!(is_nilpotent_subgroup(&full_d8, &d8_gens));
+        assert_eq!(nilpotency_class_subgroup(&full_d8, &d8_gens), Some(2));
 
         let lcs_d8 = lower_central_series(&full_d8, &d8_gens);
         assert_eq!(lcs_d8.len(), 3);
@@ -470,14 +556,18 @@ mod tests {
 
         // S_3 = D_6 of order 6 (non-nilpotent)
         let s3 = dihedral(3);
+        assert!(!is_abelian(&s3));
+        assert!(!is_nilpotent(&s3));
+        assert_eq!(nilpotency_class(&s3), None);
+
         let full_s3 = GeneratingSequence::full_group(&s3);
         let s3_gens: Vec<_> = (0..s3.num_gens())
             .map(|i| Element::from_generator(i, 1, &s3))
             .collect();
 
-        assert!(!is_abelian(&full_s3, &s3_gens));
-        assert!(!is_nilpotent(&full_s3, &s3_gens));
-        assert_eq!(nilpotency_class(&full_s3, &s3_gens), None);
+        assert!(!is_abelian_subgroup(&full_s3, &s3_gens));
+        assert!(!is_nilpotent_subgroup(&full_s3, &s3_gens));
+        assert_eq!(nilpotency_class_subgroup(&full_s3, &s3_gens), None);
 
         let lcs_s3 = lower_central_series(&full_s3, &s3_gens);
         // gamma_1 = S_3 (order 6), gamma_2 = A_3 (order 3), gamma_3 = [A_3, S_3] = A_3 (stabilizes)
@@ -490,14 +580,18 @@ mod tests {
     fn test_quaternion_series_and_nilpotency() {
         // Q_8 of order 8 (nilpotent of class 2)
         let q8 = quaternion(2);
+        assert!(!is_abelian(&q8));
+        assert!(is_nilpotent(&q8));
+        assert_eq!(nilpotency_class(&q8), Some(2));
+
         let full_q8 = GeneratingSequence::full_group(&q8);
         let q8_gens: Vec<_> = (0..q8.num_gens())
             .map(|i| Element::from_generator(i, 1, &q8))
             .collect();
 
-        assert!(!is_abelian(&full_q8, &q8_gens));
-        assert!(is_nilpotent(&full_q8, &q8_gens));
-        assert_eq!(nilpotency_class(&full_q8, &q8_gens), Some(2));
+        assert!(!is_abelian_subgroup(&full_q8, &q8_gens));
+        assert!(is_nilpotent_subgroup(&full_q8, &q8_gens));
+        assert_eq!(nilpotency_class_subgroup(&full_q8, &q8_gens), Some(2));
 
         let lcs_q8 = lower_central_series(&full_q8, &q8_gens);
         assert_eq!(lcs_q8.len(), 3);
@@ -507,14 +601,9 @@ mod tests {
 
         // Q_12 of order 12 (dicyclic with n=3, non-nilpotent)
         let q12 = quaternion(3);
-        let full_q12 = GeneratingSequence::full_group(&q12);
-        let q12_gens: Vec<_> = (0..q12.num_gens())
-            .map(|i| Element::from_generator(i, 1, &q12))
-            .collect();
-
-        assert!(!is_abelian(&full_q12, &q12_gens));
-        assert!(!is_nilpotent(&full_q12, &q12_gens));
-        assert_eq!(nilpotency_class(&full_q12, &q12_gens), None);
+        assert!(!is_abelian(&q12));
+        assert!(!is_nilpotent(&q12));
+        assert_eq!(nilpotency_class(&q12), None);
     }
 
     #[test]

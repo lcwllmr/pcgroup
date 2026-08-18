@@ -40,10 +40,7 @@ pub fn cyclic(n: u32) -> Presentation {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{
-        Element, GeneratingSequence, is_abelian, is_nilpotent, is_supersolvable, nilpotency_class,
-        verify_consistency,
-    };
+    use crate::{is_abelian, is_nilpotent, is_supersolvable, nilpotency_class, verify_consistency};
 
     #[test]
     fn test_cyclic_groups() {
@@ -61,28 +58,17 @@ mod tests {
                 "Consistency check failed for cyclic group C_{n}"
             );
 
-            let full = GeneratingSequence::full_group(&pres);
-            let gens: Vec<_> = (0..pres.num_gens())
-                .map(|i| Element::from_generator(i, 1, &pres))
-                .collect();
-
             // Cyclic groups are always abelian
-            assert!(
-                is_abelian(&full, &gens),
-                "Cyclic group C_{n} must be abelian"
-            );
+            assert!(is_abelian(&pres), "Cyclic group C_{n} must be abelian");
 
             // Nilpotency class: 0 for trivial group C_1, 1 for C_n (n >= 2)
             let expected_class = if n == 1 { 0 } else { 1 };
             assert_eq!(
-                nilpotency_class(&full, &gens),
+                nilpotency_class(&pres),
                 Some(expected_class),
                 "Nilpotency class mismatch for cyclic group C_{n}"
             );
-            assert!(
-                is_nilpotent(&full, &gens),
-                "Cyclic group C_{n} must be nilpotent"
-            );
+            assert!(is_nilpotent(&pres), "Cyclic group C_{n} must be nilpotent");
             assert!(
                 is_supersolvable(&pres),
                 "Cyclic group C_{n} must be supersolvable"

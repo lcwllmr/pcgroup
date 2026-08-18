@@ -311,6 +311,42 @@ impl<'a> GeneratingSequence<'a> {
         }
         true
     }
+
+    /// Returns `true` if this subgroup is abelian.
+    pub fn is_abelian(&self) -> bool {
+        let full_gens: Vec<_> = (0..self.pres.num_gens())
+            .map(|i| Element::from_generator(i, 1, self.pres))
+            .collect();
+        self.is_abelian_in(&full_gens)
+    }
+
+    /// Returns `true` if this subgroup is abelian under the action of `group_gens`.
+    pub fn is_abelian_in(&self, group_gens: &[Element<'a>]) -> bool {
+        crate::series::is_abelian_subgroup(self, group_gens)
+    }
+
+    /// Computes the nilpotency class of this subgroup in the parent group `G`.
+    pub fn nilpotency_class(&self) -> Option<usize> {
+        let full_gens: Vec<_> = (0..self.pres.num_gens())
+            .map(|i| Element::from_generator(i, 1, self.pres))
+            .collect();
+        self.nilpotency_class_in(&full_gens)
+    }
+
+    /// Computes the nilpotency class of this subgroup under the action of `group_gens`.
+    pub fn nilpotency_class_in(&self, group_gens: &[Element<'a>]) -> Option<usize> {
+        crate::series::nilpotency_class_subgroup(self, group_gens)
+    }
+
+    /// Returns `true` if this subgroup is nilpotent in the parent group `G`.
+    pub fn is_nilpotent(&self) -> bool {
+        self.nilpotency_class().is_some()
+    }
+
+    /// Returns `true` if this subgroup is nilpotent under the action of `group_gens`.
+    pub fn is_nilpotent_in(&self, group_gens: &[Element<'a>]) -> bool {
+        self.nilpotency_class_in(group_gens).is_some()
+    }
 }
 
 impl<'a> fmt::Display for GeneratingSequence<'a> {
