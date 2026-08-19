@@ -104,11 +104,11 @@ If all chief factors are 1-dimensional (`d = 1`, i.e., cyclic of prime order `p^
 
 `v0.2.0` (in progress): irreducible representations of certain monomial groups and more examples
 
-- [ ] Split and central extensions, random group generators with specified properties
 - [x] Baum-Clausen algorithm for computing irreps of supersolvable groups in verified `O(|G| log |G|)`
-- [ ] Compute irreps of split extensions of abelian groups by supersolvable ones
-- [ ] Zoo: famous outliers like `SL(2, 3)`, `S_3 = D_6`, `S_4` `A_4 = AGL(1, 4)` whose families are not fully solvable
-- [ ] Zoo: Upper-triangular and unipotent subgroups  `B(n, q)` and `U(n, q)` of `GL(n, q)`
+- [ ] Split and central extensions, random group generators with specified properties
+- [ ] Irreps of split extensions of abelian groups by supersolvable ones
+- [ ] Zoo: Famous outliers like `SL(2, 3)`, `S_3 = D_6`, `S_4` `A_4 = AGL(1, 4)` whose families are not fully solvable
+- [x] Zoo: Upper-triangular and unipotent subgroups `B(n, q)` and `U(n, q)` of `GL(n, q)`
 
 `v0.1.0` (2026-08-19): core tools for finite polycyclic groups
 
