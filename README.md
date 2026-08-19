@@ -9,19 +9,16 @@
 This package provides lightweight implementations of various algorithms and tools for finite polycyclic (= finite solvable) groups in pure, dependency-free Rust.
 Instead of messing with a heavy, full-featured and old library like GAP, I generally prefer something focused and lightweight, so that's why this crate exists.
 It's main responsibilities are:
-- convenient construction of interesting polycyclic groups from basic ones
+- construction of interesting polycyclic groups from basic ones
 - structure analysis via series and all sorts of other invariants
-- efficient and explicit construction of complex irreps (matrix form)
+- efficient and explicit construction of complex irreducible representations (in full matrix form, not just character tables)
 
-For an overview of implemented and planned features, see the [changelog](#changelog) below or check out the [documentation](https://docs.rs/pcgroup).
-
-## Mathematical background
-
-TODO
+For an overview of implemented and planned features, see the [changelog](#changelog) below or check out the [docs](https://docs.rs/pcgroup).
+Refer to the [background section](#mathematical-background) below for the basic mathematical background and conventions.
 
 ## Usage
 
-Add the crate as a dependency with `cargo add pcgroup`.
+Add the latest stable verion of this crate as a dependency with `cargo add pcgroup`.
 
 Here is a quick walkthrough using the dihedral group `D_8` (symmetries of a square).
 Refer to the [documentation](https://docs.rs/pcgroup) for more details on the available algorithms and data structures.
@@ -84,16 +81,37 @@ fn main() {
 }
 ```
 
+## Mathematical background
+
+A finite **polycyclic group** `G` (equivalently, a finite solvable group) admits a subnormal series with cyclic factors of prime order: `G = G_0 > G_1 > ... > G_n = {1}`, where each factor `G_i / G_{i+1}` is cyclic of prime order `p_i`.
+Choosing representatives `g_i in G_i \ G_{i+1}` yields a **power-commutator (PC) presentation** with generators `g_0, ..., g_{n-1}`, prime **relative orders** `p_0, ..., p_{n-1}`, power relations `g_i^p_i = w_ii`, and commutator relations `[g_i, g_j] = g_i^-1 g_j^-1 g_i g_j = w_ij` (for `i > j`), where each `w_ij` is a normal form word in the tail generators `g_{j+1}, ..., g_{n-1}`.
+Every element `g in G` decomposes uniquely into a **canonical normal form** `g = g_0^e_0 g_1^e_1 ... g_{n-1}^e_{n-1}` with `0 <= e_i < p_i`.
+Restricting relative orders to primes guarantees that each layer in the series is simple, giving unique minimal normal forms and ensuring that power reductions `g_i^p_i = w_ii` land directly in the tail without composite factorizations.
+The **collector** is a confluent rewriting engine that reduces arbitrary words to canonical normal form by iteratively shifting generators into index order via `g_i g_j = g_j g_i [g_i, g_j]` (for `i > j`) and applying power reductions `g_i^p_i = w_ii` whenever an exponent exceeds `p_i`.
+
+Subgroups `H <= G` are modeled by a **polycyclic generating sequences** kept in strict echelon form with leading exponent 1.
+The **sifting algorithm** acts as non-commutative Gaussian elimination along the PC series, enabling fast membership tests (`H.contains(&x)`), subgroup orders `|H|`, and coset indices `[G : H]`.
+The **subgroup closure** `<S>` is computed by iteratively sifting products and powers of elements in `S` into an echelonized generating sequence until stabilization.
+The **normal closure** `<S>^G` further closes the sequence under conjugation by ambient group generators `g^-1 s g`.
+
+For subgroups `H, K <= G`, the **commutator subgroup** `[H, K]` is the normal closure of all commutators `[h, k] = h^-1 k^-1 h k`.
+Iterating `gamma_1(G) = G` and `gamma_{k+1}(G) = [gamma_k(G), G]` yields the **lower central series**; `G` is **nilpotent** if the series reaches `{1}`, with the step count defining the **nilpotency class**.
+A **chief series** is a maximal normal series `{1} = N_m < N_{m-1} < ... < N_0 = G` whose factors `N_i / N_{i+1}` are minimal normal (**chief factors**).
+For finite solvable groups, each chief factor is elementary abelian of prime-power order `p^d` (an irreducible `F_p[G]`-module under conjugation).
+If all chief factors are 1-dimensional (`d = 1`, i.e., cyclic of prime order `p^1`), the group is **supersolvable**.
+
 ## Changelog
 
 `v0.2.0` (in progress): irreducible representations of certain monomial groups and more examples
 
 - [ ] Split and central extensions, random group generators with specified properties
 - [ ] Baum-Clausen algorithm for computing irreps of supersolvable groups in `O(|G| log |G|)` with extension to split extensions of abelian groups by supersolvable ones
+- [ ] Zoo: famous outliers like `SL(2, 3)`, `S_3 = D_6`, `S_4` `A_4 = AGL(1, 4)` whose primary families are not fully solvable
+- [ ] Zoo: Borel subgroups `B(n, q)` and unipotent subgroups `U(n, q)` of `AGL(n, q)`
 
-`v0.1.0`: core tools for finite polycyclic groups
+`v0.1.0` (2026-08-19): core tools for finite polycyclic groups
 
 - [x] Power-commutator (PC) presentations, word collector and canoncalization, group operations and consistency checks
 - [x] Subgroups as polycyclic generating sequences, sifting and membership tests, subgroup and normal closure
 - [x] Commutator subgroups, lower central series and nilpotency class, chief series and supersolvability test
-- [x] Zoo of pre-defined groups: cyclic `C_n`, abelian `C_n1 x C_n2 x ... C_nr`, dihedral `D_2n`, generalized quaternion `Q_4n`, 1D affine groups of finite fields `AGL(1, q)`
+- [x] Zoo of pre-defined families of solvable groups: cyclic `C_n`, abelian `C_n1 x C_n2 x ... C_nr`, dihedral `D_2n`, generalized quaternion `Q_4n`, 1D affine groups of finite fields `AGL(1, q)`
