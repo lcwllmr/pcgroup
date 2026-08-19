@@ -12,3 +12,7 @@ categories = ["mathematics", "science"]
 exclude = [".github", ".gitignore", "Taskfile.yml"]
 
 [dependencies]
+
+[[bench]]
+name = "baum_clausen"
+harness = false
