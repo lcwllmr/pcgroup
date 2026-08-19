@@ -15,3 +15,6 @@ pub use self::affine1d::affine1d;
 
 mod unipotent;
 pub use self::unipotent::unipotent;
+
+mod upper_triangular;
+pub use self::upper_triangular::upper_triangular;
