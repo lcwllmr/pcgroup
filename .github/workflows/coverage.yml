@@ -2,6 +2,12 @@ name: coverage
 on:
   push:
     branches: [ "main" ]
+    paths:
+      - "src/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - ".github/workflows/coverage.yml"
+      - ".github/workflows/check.yml"
 jobs:
   check:
     uses: ./.github/workflows/check.yml
