@@ -635,15 +635,7 @@ pub fn group_exponent(pres: &Presentation) -> u32 {
     let mut exp = 1u32;
     for i in 0..n {
         let elem = Element::from_generator(i, 1, pres);
-        let mut cur = elem.clone();
-        let mut ord = 1u32;
-        while !cur.is_identity() {
-            cur = &cur * &elem;
-            ord += 1;
-            if ord > 10000 {
-                break;
-            }
-        }
+        let ord = elem.order() as u32;
         exp = lcm(exp, ord);
     }
 
@@ -785,6 +777,25 @@ mod tests {
 
         for rep in &irreps {
             verify_representation_homomorphism(&pres, rep);
+        }
+    }
+
+    #[test]
+    fn test_large_group_exponent_and_irreps() {
+        // Verify group_exponent and Element::order work seamlessly for orders > 10000 in microseconds
+        let pres = dihedral(65536);
+        assert_eq!(pres.order(), 131072);
+        assert_eq!(group_exponent(&pres), 65536);
+
+        let g1 = Element::from_generator(1, 1, &pres);
+        assert_eq!(g1.order(), 65536);
+
+        // Verify end-to-end Baum-Clausen representation construction on a moderately sized group
+        let d16 = dihedral(16);
+        let irreps = irreducible_representations(&d16).expect("succeeds for D_32");
+        assert_eq!(irreps.len(), 4 + (16 - 2) / 2);
+        for rep in &irreps {
+            verify_representation_homomorphism(&d16, rep);
         }
     }
 }

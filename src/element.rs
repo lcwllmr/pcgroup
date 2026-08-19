@@ -122,7 +122,13 @@ impl<'a> Element<'a> {
     }
 
     /// Computes `self^exp` using binary exponentiation.
-    pub fn pow(&self, mut exp: u32) -> Self {
+    #[inline]
+    pub fn pow(&self, exp: u32) -> Self {
+        self.pow_u128(exp as u128)
+    }
+
+    /// Computes `self^exp` using binary exponentiation for a 128-bit exponent.
+    pub fn pow_u128(&self, mut exp: u128) -> Self {
         if exp == 0 {
             return Self::identity(self.pres);
         }
@@ -142,6 +148,32 @@ impl<'a> Element<'a> {
             }
         }
         result
+    }
+
+    /// Computes the exact order of this element in the polycyclic group.
+    ///
+    /// The order is found by testing prime factors of the group order in `O(n log |G|)` group multiplications.
+    pub fn order(&self) -> u128 {
+        if self.is_identity() {
+            return 1;
+        }
+        let mut primes: Vec<u32> = self.pres.relative_orders().to_vec();
+        primes.sort_unstable();
+        primes.dedup();
+
+        let mut m = self.pres.order();
+        for &q in &primes {
+            let q_u128 = q as u128;
+            while m.is_multiple_of(q_u128) {
+                let m_candidate = m / q_u128;
+                if self.pow_u128(m_candidate).is_identity() {
+                    m = m_candidate;
+                } else {
+                    break;
+                }
+            }
+        }
+        m
     }
 
     /// Computes the inverse of the element using structural PC relations.
@@ -337,5 +369,32 @@ mod tests {
         assert_eq!(g0_inv.to_string(), "g0 g1");
         assert_eq!(&g0 * &g0_inv, id);
         assert_eq!(&g0_inv * &g0, id);
+    }
+
+    #[test]
+    fn test_element_order() {
+        let pres = Builder::new(vec![2, 3])
+            .unwrap()
+            .add_commutator(1, 0, Word::from_term(1, 1))
+            .unwrap()
+            .build();
+
+        let id = Element::identity(&pres);
+        assert_eq!(id.order(), 1);
+
+        let g0 = Element::from_generator(0, 1, &pres);
+        assert_eq!(g0.order(), 2);
+
+        let g1 = Element::from_generator(1, 1, &pres);
+        assert_eq!(g1.order(), 3);
+
+        let g01 = &g0 * &g1;
+        assert_eq!(g01.order(), 2);
+
+        // Fast order computation for large orders (e.g. order 100,000)
+        let large_c = crate::zoo::cyclic(100_000);
+        let g = Element::from_generator(0, 1, &large_c);
+        assert_eq!(g.order(), 100_000);
+        assert_eq!(g.pow(25_000).order(), 4);
     }
 }
