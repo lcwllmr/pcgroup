@@ -9,6 +9,6 @@ repository = "https://github.com/lcwllmr/pcgroup"
 license = "MIT"
 keywords = ["group-theory", "algebra", "polycyclic"]
 categories = ["mathematics", "science"]
-exclude = [".github", ".gitignore"]
+exclude = [".github", ".gitignore", "Taskfile.yml"]
 
 [dependencies]
