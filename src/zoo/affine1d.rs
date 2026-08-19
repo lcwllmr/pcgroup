@@ -1,177 +1,6 @@
-use crate::util::{factorize, is_prime, mod_inverse};
+use crate::util::{FiniteField, factorize, is_prime};
 use crate::word::Term;
 use crate::{Builder, Presentation, Word};
-
-fn trim(poly: &mut Vec<u32>) {
-    while poly.len() > 1 && *poly.last().unwrap() == 0 {
-        poly.pop();
-    }
-}
-
-fn poly_mul(a: &[u32], b: &[u32], p: u32) -> Vec<u32> {
-    if a.is_empty() || b.is_empty() {
-        return vec![0];
-    }
-    let mut res = vec![0; a.len() + b.len() - 1];
-    for (i, &va) in a.iter().enumerate() {
-        for (j, &vb) in b.iter().enumerate() {
-            res[i + j] = ((res[i + j] as u64 + va as u64 * vb as u64) % p as u64) as u32;
-        }
-    }
-    trim(&mut res);
-    res
-}
-
-fn poly_rem(mut a: Vec<u32>, b: &[u32], p: u32) -> Vec<u32> {
-    if a.len() < b.len() {
-        trim(&mut a);
-        return a;
-    }
-    let inv_lead = mod_inverse(*b.last().unwrap() % p, p).unwrap_or(1);
-    while a.len() >= b.len() {
-        let lead_a = *a.last().unwrap();
-        if lead_a != 0 {
-            let factor = ((lead_a as u64 * inv_lead as u64) % p as u64) as u32;
-            let shift = a.len() - b.len();
-            for (i, &vb) in b.iter().enumerate() {
-                let sub = ((vb as u64 * factor as u64) % p as u64) as u32;
-                a[shift + i] = (a[shift + i] + p - sub) % p;
-            }
-        }
-        a.pop();
-    }
-    trim(&mut a);
-    if a.is_empty() { vec![0] } else { a }
-}
-
-fn poly_gcd(mut a: Vec<u32>, mut b: Vec<u32>, p: u32) -> Vec<u32> {
-    while !(b.len() == 1 && b[0] == 0) && !b.is_empty() {
-        let r = poly_rem(a, &b, p);
-        a = b;
-        b = r;
-    }
-    a
-}
-
-fn poly_powmod(base: &[u32], mut exp: u64, modulus: &[u32], p: u32) -> Vec<u32> {
-    let mut res = vec![1];
-    let mut cur = poly_rem(base.to_vec(), modulus, p);
-    while exp > 0 {
-        if exp & 1 == 1 {
-            res = poly_rem(poly_mul(&res, &cur, p), modulus, p);
-        }
-        cur = poly_rem(poly_mul(&cur, &cur, p), modulus, p);
-        exp >>= 1;
-    }
-    res
-}
-
-fn find_field(p: u32, r: usize) -> (Vec<u32>, Vec<u32>) {
-    if r == 1 {
-        let order = p - 1;
-        let mut prime_divs = factorize(order);
-        prime_divs.dedup();
-        for g in 1..p {
-            let mut is_prim = true;
-            for &d in &prime_divs {
-                let mut cur = 1u64;
-                let mut base = g as u64;
-                let mut exp = (order / d) as u64;
-                while exp > 0 {
-                    if exp & 1 == 1 {
-                        cur = (cur * base) % (p as u64);
-                    }
-                    base = (base * base) % (p as u64);
-                    exp >>= 1;
-                }
-                if cur == 1 {
-                    is_prim = false;
-                    break;
-                }
-            }
-            if is_prim {
-                return (vec![0, 1], vec![g]);
-            }
-        }
-        return (vec![0, 1], vec![1]);
-    }
-
-    let q = (p as u64).pow(r as u32);
-    let mut r_prime_divs = factorize(r as u32);
-    r_prime_divs.dedup();
-
-    let mut poly = vec![0; r + 1];
-    poly[r] = 1;
-    let mut found_poly = false;
-    for code in 1..q {
-        let mut val = code;
-        for coeff in poly.iter_mut().take(r) {
-            *coeff = (val % (p as u64)) as u32;
-            val /= p as u64;
-        }
-        if poly[0] == 0 {
-            continue;
-        }
-
-        let x = vec![0, 1];
-        if poly_powmod(&x, q, &poly, p) != x {
-            continue;
-        }
-
-        let mut is_irred = true;
-        for &d in &r_prime_divs {
-            let exp_d = (p as u64).pow((r as u32) / d);
-            let mut diff = poly_powmod(&x, exp_d, &poly, p);
-            if diff.len() < 2 {
-                diff.resize(2, 0);
-            }
-            diff[1] = (diff[1] + p - 1) % p;
-            trim(&mut diff);
-            if poly_gcd(poly.clone(), diff, p).len() > 1 {
-                is_irred = false;
-                break;
-            }
-        }
-        if is_irred {
-            found_poly = true;
-            break;
-        }
-    }
-    assert!(
-        found_poly,
-        "monic irreducible polynomial of degree {r} over F_{p} not found"
-    );
-
-    let order = q - 1;
-    let mut q_prime_divs = factorize(order as u32);
-    q_prime_divs.dedup();
-
-    for code in 1..q {
-        let mut elem = vec![0; r];
-        let mut val = code;
-        for coeff in elem.iter_mut().take(r) {
-            *coeff = (val % (p as u64)) as u32;
-            val /= p as u64;
-        }
-        trim(&mut elem);
-        if elem.len() == 1 && elem[0] == 0 {
-            continue;
-        }
-
-        let mut is_prim = true;
-        for &d in &q_prime_divs {
-            let exp = order / (d as u64);
-            if poly_powmod(&elem, exp, &poly, p) == vec![1] {
-                is_prim = false;
-                break;
-            }
-        }
-        if is_prim {
-            return (poly, elem);
-        }
-    }
-    panic!("primitive element in F_{}^{} not found", p, r);
-}
 
 /// Constructs a polycyclic (PC) presentation for the 1-dimensional affine general linear group `AGL(1, q)`.
 ///
@@ -238,33 +67,21 @@ pub fn affine1d(p: u32, r: u32) -> Presentation {
             .expect("valid H power relation");
     }
 
-    let (poly, prim) = find_field(p, r_usize);
+    let field = FiniteField::new(p, r_usize);
 
     let mut alphas = Vec::with_capacity(m);
     let mut s = 1u64;
     for &f in &h_factors {
-        alphas.push(poly_powmod(&prim, s, &poly, p));
+        alphas.push(field.pow(&field.prim, s));
         s *= f as u64;
     }
 
     for i in 0..r_usize {
-        let x_i = if i == 0 {
-            vec![1]
-        } else {
-            let mut v = vec![0; i + 1];
-            v[i] = 1;
-            v
-        };
+        let x_i = field.basis_element(i);
 
         for (j, alpha_j) in alphas.iter().enumerate() {
-            let mut alpha_minus_1 = alpha_j.clone();
-            if alpha_minus_1.is_empty() {
-                alpha_minus_1 = vec![0];
-            }
-            alpha_minus_1[0] = (alpha_minus_1[0] + p - 1) % p;
-            trim(&mut alpha_minus_1);
-
-            let prod = poly_rem(poly_mul(&alpha_minus_1, &x_i, p), &poly, p);
+            let alpha_minus_1 = field.sub(alpha_j, &[1]);
+            let prod = field.mul(&alpha_minus_1, &x_i);
             let mut terms = Vec::new();
             for (k, &coeff) in prod.iter().enumerate() {
                 if coeff > 0 && k < r_usize {

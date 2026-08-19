@@ -1,3 +1,6 @@
+mod field;
+pub use self::field::FiniteField;
+
 mod linalg;
 pub use self::linalg::{ModularMatrix, ModularSubspace, MonomialMatrix, composition_series};
 
