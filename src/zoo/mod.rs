@@ -18,3 +18,6 @@ pub use self::unipotent::unipotent;
 
 mod upper_triangular;
 pub use self::upper_triangular::upper_triangular;
+
+mod outliers;
+pub use self::outliers::{a4, s3, s4, sl2_3};
