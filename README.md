@@ -102,19 +102,20 @@ If all chief factors are 1-dimensional (`d = 1`, i.e., cyclic of prime order `p^
 
 ## Changelog
 
-Planned for future versions:
+Contact me if you have feature requests. Always happy to dicsuss. Currently planned for future versions are:
 
+- Reduced Big-Oh constant in Baum-Clausen algorithm
 - Compute irreducible representations of any PC group in verified `O(|G|^2 log |G|)`
+- Improve docs and unify math notation
 
-`v0.2.0` (in progress): irreducible representations of certain monomial groups and more examples
+`v0.2.0` (2026-08-21): Irreps of supersolvable groups and more examples
 
 - [x] Baum-Clausen algorithm for computing irreps of supersolvable groups in verified `O(|G| log |G|)`
 - [x] Split and central extensions
-- [ ] Irreps of split extensions of abelian groups by supersolvable ones
-- [ ] Zoo: Famous outliers like `SL(2, 3)`, `S_3 = D_6`, `S_4` `A_4 = AGL(1, 4)` whose families are not fully solvable
+- [x] Zoo: Famous outliers like `SL(2, 3)`, `S_3 = D_6`, `S_4` `A_4 = AGL(1, 4)` whose families are not fully solvable
 - [x] Zoo: Upper-triangular and unipotent subgroups `B(n, q)` and `U(n, q)` of `GL(n, q)`
 
-`v0.1.0` (2026-08-19): core tools for finite polycyclic groups
+`v0.1.0` (2026-08-19): Core tools for finite polycyclic groups
 
 - [x] Power-commutator (PC) presentations, word collector and canoncalization, group operations and consistency checks
 - [x] Subgroups as polycyclic generating sequences, sifting and membership tests, subgroup and normal closure
