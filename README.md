@@ -102,10 +102,14 @@ If all chief factors are 1-dimensional (`d = 1`, i.e., cyclic of prime order `p^
 
 ## Changelog
 
+Planned for future versions:
+
+- Compute irreducible representations of any PC group in verified `O(|G|^2 log |G|)`
+
 `v0.2.0` (in progress): irreducible representations of certain monomial groups and more examples
 
 - [x] Baum-Clausen algorithm for computing irreps of supersolvable groups in verified `O(|G| log |G|)`
-- [ ] Split and central extensions, random group generators with specified properties
+- [x] Split and central extensions
 - [ ] Irreps of split extensions of abelian groups by supersolvable ones
 - [ ] Zoo: Famous outliers like `SL(2, 3)`, `S_3 = D_6`, `S_4` `A_4 = AGL(1, 4)` whose families are not fully solvable
 - [x] Zoo: Upper-triangular and unipotent subgroups `B(n, q)` and `U(n, q)` of `GL(n, q)`
