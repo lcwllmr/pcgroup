@@ -103,3 +103,6 @@ mod baum_clausen;
 pub use crate::baum_clausen::{
     BaumClausenError, BaumClausenStage, Representation, irreducible_representations,
 };
+
+mod extension;
+pub use crate::extension::{ExtensionError, central_extension, split_extension};
