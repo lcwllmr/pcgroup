@@ -108,14 +108,22 @@ Contact me if you have feature requests. Always happy to dicsuss. Currently plan
 - Compute irreducible representations of any PC group in verified `O(|G|^2 log |G|)`
 - Improve docs and unify math notation
 
-`v0.2.0` (2026-08-21): Irreps of supersolvable groups and more examples
+### `v0.2.0` (2026-08-21): Irreps of supersolvable groups and more examples
+
+New features:
 
 - [x] Baum-Clausen algorithm for computing irreps of supersolvable groups in verified `O(|G| log |G|)`
 - [x] Split and central extensions
 - [x] Zoo: Famous outliers like `SL(2, 3)`, `S_3 = D_6`, `S_4` `A_4 = AGL(1, 4)` whose families are not fully solvable
 - [x] Zoo: Upper-triangular and unipotent subgroups `B(n, q)` and `U(n, q)` of `GL(n, q)`
 
-`v0.1.0` (2026-08-19): Core tools for finite polycyclic groups
+Fixed issues:
+
+- Computation of group exponent and element orders at larger sizes
+
+### `v0.1.0` (2026-08-19): Core tools for finite polycyclic groups
+
+Features:
 
 - [x] Power-commutator (PC) presentations, word collector and canoncalization, group operations and consistency checks
 - [x] Subgroups as polycyclic generating sequences, sifting and membership tests, subgroup and normal closure
